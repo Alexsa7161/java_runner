@@ -1,62 +1,35 @@
 package org.example.adaptive.storage;
 
-import org.example.adaptive.model.Observation;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ObservationHistory {
 
-    private final int maxSize;
-    private final Deque<Observation> observations;
+    private final List<Observation> history = new ArrayList<>();
 
-    public ObservationHistory(int maxSize) {
-        this.maxSize = maxSize;
-        this.observations = new ArrayDeque<>();
-    }
-
+    // добавить запись
     public void add(Observation observation) {
-        if (observations.size() >= maxSize) {
-            observations.removeFirst(); // удаляем самое старое
-        }
-        observations.addLast(observation);
+        history.add(observation);
     }
 
+    // получить всю историю
+    public List<Observation> getAll() {
+        return history;
+    }
+
+    // размер истории
     public int size() {
-        return observations.size();
+        return history.size();
     }
 
-    public boolean isReady(int minSize) {
-        return observations.size() >= minSize;
-    }
-
-    public double[][] getFeatureMatrix() {
-        int m = observations.size();
-        int n = observations.peekFirst().getFeatureSize();
-
-        double[][] X = new double[m][n];
-
-        int i = 0;
-        for (Observation obs : observations) {
-            X[i++] = obs.getFeatures();
-        }
-
-        return X;
-    }
-
-    public double[] getTargetVector() {
-        int m = observations.size();
-        double[] T = new double[m];
-
-        int i = 0;
-        for (Observation obs : observations) {
-            T[i++] = obs.getExecutionTime();
-        }
-
-        return T;
-    }
-
+    // очистка (если нужно для экспериментов)
     public void clear() {
-        observations.clear();
+        history.clear();
+    }
+    public Observation getLast() {
+        if (history.isEmpty()) {
+            return null;
+        }
+        return history.get(history.size() - 1);
     }
 }
