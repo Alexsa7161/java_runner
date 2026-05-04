@@ -39,4 +39,4 @@ FROM (
         s_name,
         p_partkey
 )
-WHERE ROWNUM <= 100;
+WHERE ROWNUM <= 100

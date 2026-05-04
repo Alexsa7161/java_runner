@@ -23,4 +23,4 @@ FROM (
         revenue DESC,
         o_orderdate
 )
-WHERE ROWNUM <= 10;
+WHERE ROWNUM <= 10

@@ -20,13 +20,17 @@ public class LoadGenerator {
     }
 
     public void start() {
+
         if (running.get()) return;
 
         running.set(true);
 
         thread = new Thread(() -> {
+
             while (running.get()) {
+
                 for (String q : queries) {
+
                     if (!running.get()) break;
 
                     try (Connection c = dataSource.getConnection();
@@ -34,8 +38,10 @@ public class LoadGenerator {
 
                         ps.execute();
 
+
+                        Thread.sleep(10);
+
                     } catch (Exception ignored) {
-                        // нагрузка не должна падать
                     }
                 }
             }

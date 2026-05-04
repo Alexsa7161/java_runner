@@ -14,134 +14,132 @@ public class MetricsCollector {
     public MetricsCollector(DataSource dataSource) {
         this.dataSource = dataSource;
     }
-    public Map<String, Double> collectSessionParameters() {
+
+    // =========================
+    // MAIN ENTRY (НОВЫЙ МЕТОД)
+    // =========================
+    public Map<String, Double> collectAll() {
 
         Map<String, Double> result = new LinkedHashMap<>();
 
         try (Connection conn = dataSource.getConnection()) {
 
-            for (Metric m : METRICS) {
-                double value = fetchParameter(conn, m.oracleName());
-                result.put(m.name(), value);
+            // ---- STATIC ----
+            for (Metric m : STATIC_METRICS) {
+                result.put(m.name(), fetchParameter(conn, m.oracleName()));
+            }
+
+            // ---- DYNAMIC ----
+            for (Metric m : DYNAMIC_METRICS) {
+                result.put(m.name(), fetchDynamic(conn, m.oracleName()));
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to collect optimizer session metrics", e);
+            throw new RuntimeException("Failed to collect all metrics", e);
         }
 
         return result;
     }
 
+    // =========================
+    // STATIC (v$parameter)
+    // =========================
     private double fetchParameter(Connection conn, String name) {
 
-        try {
-            if (name.startsWith("SYS:")) {
-                return fetchSystemMetric(conn, name);
-            } else {
-                return fetchSessionParameter(conn, name);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch: " + name, e);
-        }
-    }
-    private double fetchSessionParameter(Connection conn, String paramName) throws Exception {
+        try (PreparedStatement stmt = conn.prepareStatement("""
+                SELECT value
+                FROM v$parameter
+                WHERE name = ?
+        """)) {
 
-        String sql = """
-        SELECT value
-        FROM v$parameter
-        WHERE name = ?
-    """;
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, paramName);
+            stmt.setString(1, name);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return parseValue(rs.getString(1));
+                    return parse(rs.getString(1));
                 }
             }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch param: " + name, e);
         }
 
         return 0.0;
     }
-    private double fetchSystemMetric(Connection conn, String metric) throws Exception {
 
-        switch (metric) {
+    // =========================
+    // DYNAMIC (v$sysstat / v$ views)
+    // =========================
+    private double fetchDynamic(Connection conn, String key) {
 
-            case "SYS:CPU_USAGE":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'CPU used by this session'");
+        try {
 
-            case "SYS:ACTIVE_SESSIONS":
-                return querySingle(conn,
-                        "SELECT COUNT(*) FROM v$session WHERE status = 'ACTIVE'");
+            return switch (key) {
 
-            case "SYS:LOGICAL_READS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'session logical reads'");
+                case "cpu_usage" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='CPU used by this session'");
 
-            case "SYS:PHYSICAL_READS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'physical reads'");
+                case "logical_reads" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='session logical reads'");
 
-            case "SYS:PHYSICAL_WRITES":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'physical writes'");
+                case "physical_reads" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='physical reads'");
 
-            case "SYS:DB_BLOCK_GETS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'db block gets'");
+                case "physical_writes" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='physical writes'");
 
-            case "SYS:CONSISTENT_GETS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name = 'consistent gets'");
+                case "db_block_gets" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='db block gets'");
 
-            case "SYS:BUFFER_HIT":
-                return querySingle(conn,
+                case "consistent_gets" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='consistent gets'");
+
+                case "parse_calls" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='parse count (total)'");
+
+                case "hard_parses" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='parse count (hard)'");
+
+                case "active_sessions" -> single(conn,
+                        "SELECT COUNT(*) FROM v$session WHERE status='ACTIVE'");
+
+                case "pga_used" -> single(conn,
+                        "SELECT value FROM v$pgastat WHERE name='total PGA allocated'");
+
+                case "temp_used" -> single(conn,
+                        "SELECT NVL(SUM(blocks)*8192,0) FROM v$tempseg_usage");
+
+                case "io_wait_time" -> single(conn,
+                        "SELECT NVL(SUM(time_waited),0) FROM v$system_event WHERE event LIKE 'db file%'");
+
+                case "buffer_cache_hit_ratio" -> single(conn,
                         "SELECT (1 - (phy.value / (cur.value + con.value))) * 100 " +
                                 "FROM v$sysstat phy, v$sysstat cur, v$sysstat con " +
                                 "WHERE phy.name='physical reads' " +
                                 "AND cur.name='db block gets' " +
                                 "AND con.name='consistent gets'");
 
-            case "SYS:LIB_HIT":
-                return querySingle(conn,
-                        "SELECT COALESCE((1 - SUM(reloads) / NULLIF(SUM(pins), 0)) * 100, 100) FROM v$librarycache");
+                case "rows_processed" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='table scan rows gotten'");
 
-            case "SYS:LATCH_WAITS":
-                return querySingle(conn,
-                        "SELECT SUM(misses) FROM v$latch");
+                case "table_scans" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='table scans (long tables)'");
 
-            case "SYS:ENQUEUE":
-                return querySingle(conn,
-                        "SELECT COUNT(*) FROM v$lock");
+                case "index_scans" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='index scans kdiixs1'");
 
-            case "SYS:PGA_USED":
-                return querySingle(conn,
-                        "SELECT value FROM v$pgastat WHERE name='total PGA allocated'");
+                case "join_operations" -> single(conn,
+                        "SELECT value FROM v$sysstat WHERE name='sorts (rows)'");
 
-            case "SYS:TEMP_USED":
-                return querySingle(conn,
-                        "SELECT SUM(blocks)*8192 FROM v$tempseg_usage");
+                default -> 0.0;
+            };
 
-            case "SYS:IO_WAIT":
-                return querySingle(conn,
-                        "SELECT time_waited FROM v$system_event WHERE event LIKE 'db file%'");
-
-            case "SYS:LOGONS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name='logons cumulative'");
-
-            case "SYS:PARSE_CALLS":
-                return querySingle(conn,
-                        "SELECT value FROM v$sysstat WHERE name='parse count (total)'");
-
-            default:
-                return 0.0;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed dynamic metric: " + key, e);
         }
     }
-    private double querySingle(Connection conn, String sql) throws Exception {
+
+    private double single(Connection conn, String sql) throws Exception {
 
         try (PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -154,68 +152,68 @@ public class MetricsCollector {
         return 0.0;
     }
 
-    private double parseValue(String value) {
+    // =========================
+    // PARSE
+    // =========================
+    private double parse(String value) {
 
         if (value == null) return 0.0;
 
         value = value.trim();
 
-        if ("AUTO".equalsIgnoreCase(value)) return 1.0;
-        if ("MANUAL".equalsIgnoreCase(value)) return 0.0;
-
-        if ("TRUE".equalsIgnoreCase(value)) return 1.0;
-        if ("FALSE".equalsIgnoreCase(value)) return 0.0;
+        switch (value.toUpperCase()) {
+            case "AUTO": return 1.0;
+            case "MANUAL": return 0.0;
+            case "TRUE": return 1.0;
+            case "FALSE": return 0.0;
+        }
 
         try {
             return Double.parseDouble(value);
         } catch (Exception e) {
-            return value.hashCode();
+            return value.hashCode() % 1000;
         }
     }
-    public record Metric(
-            String name,
-            String oracleName
-    ) {}
 
-    public static final java.util.List<Metric> METRICS = java.util.List.of(
+    // =========================
+    // METRIC DEFINITIONS
+    // =========================
+    public record Metric(String name, String oracleName) {}
 
-            // ===== KNOBS (управляемые) =====
+    // ---- STATIC (16)
+    public static final java.util.List<Metric> STATIC_METRICS = java.util.List.of(
+
             new Metric("optimizer_index_cost_adj", "optimizer_index_cost_adj"),
             new Metric("optimizer_index_caching", "optimizer_index_caching"),
-            new Metric("db_file_multiblock_read_count", "db_file_multiblock_read_count"),
-            new Metric("parallel_degree_limit", "parallel_degree_limit"),
-            new Metric("parallel_degree_policy", "parallel_degree_policy"),
-            new Metric("parallel_min_time_threshold", "parallel_min_time_threshold"),
             new Metric("optimizer_dynamic_sampling", "optimizer_dynamic_sampling"),
+            new Metric("optimizer_features_enable", "optimizer_features_enable"),
 
             new Metric("pga_aggregate_target", "pga_aggregate_target"),
-            new Metric("sga_target", "sga_target"),
-            new Metric("db_cache_size", "db_cache_size"),
-            new Metric("shared_pool_size", "shared_pool_size"),
-
-            new Metric("result_cache_max_size", "result_cache_max_size"),
-            new Metric("hash_area_size", "hash_area_size"),
-            new Metric("sort_area_size", "sort_area_size"),
-
             new Metric("workarea_size_policy", "workarea_size_policy"),
-            new Metric("plsql_optimize_level", "plsql_optimize_level"),
+            new Metric("db_file_multiblock_read_count", "db_file_multiblock_read_count"),
+            new Metric("query_rewrite_enabled", "query_rewrite_enabled")
+    );
 
-            // ===== SYSTEM (НЕ управляемые) =====
-            new Metric("cpu_usage", "SYS:CPU_USAGE"),
-            new Metric("active_sessions", "SYS:ACTIVE_SESSIONS"),
-            new Metric("logical_reads", "SYS:LOGICAL_READS"),
-            new Metric("physical_reads", "SYS:PHYSICAL_READS"),
-            new Metric("physical_writes", "SYS:PHYSICAL_WRITES"),
-            new Metric("db_block_gets", "SYS:DB_BLOCK_GETS"),
-            new Metric("consistent_gets", "SYS:CONSISTENT_GETS"),
-            new Metric("buffer_cache_hit_ratio", "SYS:BUFFER_HIT"),
-            new Metric("library_cache_hit_ratio", "SYS:LIB_HIT"),
-            new Metric("latch_waits", "SYS:LATCH_WAITS"),
-            new Metric("enqueue_waits", "SYS:ENQUEUE"),
-            new Metric("pga_used", "SYS:PGA_USED"),
-            new Metric("temp_used", "SYS:TEMP_USED"),
-            new Metric("io_wait_time", "SYS:IO_WAIT"),
-            new Metric("logons", "SYS:LOGONS"),
-            new Metric("parse_calls", "SYS:PARSE_CALLS")
+    // ---- DYNAMIC (16)
+    public static final java.util.List<Metric> DYNAMIC_METRICS = java.util.List.of(
+
+            new Metric("cpu_usage", "cpu_usage"),
+            new Metric("logical_reads", "logical_reads"),
+            new Metric("physical_reads", "physical_reads"),
+            new Metric("physical_writes", "physical_writes"),
+            new Metric("db_block_gets", "db_block_gets"),
+            new Metric("consistent_gets", "consistent_gets"),
+            new Metric("parse_calls", "parse_calls"),
+            new Metric("hard_parses", "hard_parses"),
+
+            new Metric("active_sessions", "active_sessions"),
+            new Metric("pga_used", "pga_used"),
+            new Metric("temp_used", "temp_used"),
+            new Metric("io_wait_time", "io_wait_time"),
+            new Metric("buffer_cache_hit_ratio", "buffer_cache_hit_ratio"),
+            new Metric("rows_processed", "rows_processed"),
+            new Metric("table_scans", "table_scans"),
+            new Metric("index_scans", "index_scans"),
+            new Metric("join_operations", "join_operations")
     );
 }

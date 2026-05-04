@@ -30,4 +30,4 @@ FROM (
 GROUP BY
     o_year
 ORDER BY
-    o_year;
+    o_year

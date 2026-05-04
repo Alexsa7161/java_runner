@@ -6,8 +6,12 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryExecutor {
+
+    private static final Logger log = LoggerFactory.getLogger(QueryExecutor.class);
 
     private final DataSource dataSource;
 
@@ -15,34 +19,33 @@ public class QueryExecutor {
         this.dataSource = dataSource;
     }
 
-    public ExecutionResult execute(String sql) {
-
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+    
+    public ExecutionResult execute(Connection conn, String sql) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             long start = System.nanoTime();
-
             stmt.execute();
-
             long end = System.nanoTime();
-
-            double timeMs = (end - start) / 1_000_000.0;
-
-            return new ExecutionResult(timeMs, true);
-
+            return new ExecutionResult((end - start) / 1_000_000.0, true);
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("Query execution failed", e);
             return new ExecutionResult(-1, false);
         }
     }
 
-    /**
-     * ⚡ ГЛАВНОЕ ИЗМЕНЕНИЕ — теперь применяем ВСЕ параметры
-     */
-    public void applySessionSettings(Map<String, String> params) {
+    
+    public ExecutionResult execute(String sql) {
+        try (Connection conn = dataSource.getConnection()) {
+            return execute(conn, sql);
+        } catch (SQLException e) {
+            log.error("Failed to obtain connection", e);
+            return new ExecutionResult(-1, false);
+        }
+    }
+
+    
+    public void applySessionSettings(Connection conn, Map<String, String> params) {
         if (params == null || params.isEmpty()) return;
 
-        // Параметры, которые разрешено менять на уровне сессии
         Set<String> allowedSessionParams = Set.of(
                 "optimizer_index_cost_adj",
                 "optimizer_index_caching",
@@ -54,43 +57,30 @@ public class QueryExecutor {
                 "hash_area_size",
                 "sort_area_size",
                 "workarea_size_policy",
-                "plsql_optimize_level"
-                // result_cache_max_size – спорно, но может работать,
-                // shared_pool_size, db_cache_size, pga_aggregate_target, sga_target – обычно системные, не трогаем
+                "plsql_optimize_level",
+                "optimizer_adaptive_plans",
+                "optimizer_adaptive_statistics"
         );
 
-        try (Connection conn = dataSource.getConnection()) {
-            for (Map.Entry<String, String> e : params.entrySet()) {
-                if (!allowedSessionParams.contains(e.getKey())) continue;
-
-                String sql = "ALTER SESSION SET " + e.getKey() + " = " + e.getValue();
-                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                    stmt.execute();
-                }
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            if (!allowedSessionParams.contains(e.getKey())) continue;
+            String sql = "ALTER SESSION SET " + e.getKey() + " = " + e.getValue();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.execute();
+            } catch (SQLException ex) {
+                throw new RuntimeException("Failed to apply session setting: " + sql, ex);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to apply session settings", e);
         }
     }
 
-    /**
-     * Hint injection (расширенная версия)
-     */
+    
     public String injectHints(String sql, Map<String, String> params) {
-
-        if (params == null || params.isEmpty()) {
-            return sql;
-        }
-
+        if (params == null || params.isEmpty()) return sql;
         String hints = String.join(" ",
                 params.entrySet().stream()
                         .map(e -> "OPT_PARAM('" + e.getKey() + "' " + e.getValue() + ")")
                         .toList()
         );
-
-        return sql.replaceFirst(
-                "(?i)SELECT",
-                "SELECT /*+ " + hints + " */"
-        );
+        return sql.replaceFirst("(?i)SELECT", "SELECT ");
     }
 }

@@ -11,20 +11,10 @@ public class DataSourceFactory {
 
         HikariConfig config = new HikariConfig();
 
-        // =========================
-        // Oracle XE Docker (SERVICE NAME)
-        // =========================
         config.setJdbcUrl("jdbc:oracle:thin:@//localhost:1521/XEPDB1");
-
-        // =========================
-        // TPC-H USER (из init скрипта)
-        // =========================
         config.setUsername("tpch");
         config.setPassword("tpch");
 
-        // =========================
-        // POOL SETTINGS
-        // =========================
         config.setMaximumPoolSize(10);
         config.setMinimumIdle(2);
         config.setConnectionTimeout(30000);

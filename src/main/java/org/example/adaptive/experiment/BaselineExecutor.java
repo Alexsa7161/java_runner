@@ -16,15 +16,15 @@ public class BaselineExecutor {
 
         try (Connection conn = dataSource.getConnection()) {
 
-            long start = System.nanoTime();
-
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                long start = System.nanoTime();
+
                 stmt.execute();
+
+                return (System.nanoTime() - start) / 1_000_000;
+
             }
-
-            long end = System.nanoTime();
-
-            return (end - start) / 1_000_000;
 
         } catch (Exception e) {
             throw new RuntimeException(e);

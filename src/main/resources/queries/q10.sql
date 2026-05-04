@@ -32,4 +32,4 @@ FROM (
     ORDER BY
         revenue DESC
 )
-WHERE ROWNUM <= 20;
+WHERE ROWNUM <= 20

@@ -4,228 +4,288 @@ import org.example.adaptive.execution.ExecutionResult;
 import org.example.adaptive.execution.QueryExecutor;
 import org.example.adaptive.metrics.MetricsCollector;
 import org.example.adaptive.model.RegressionModel;
-import org.example.adaptive.plan.OptimizerApplier;
 import org.example.adaptive.storage.Observation;
 import org.example.adaptive.storage.ObservationHistory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.util.*;
 
 public class AdaptiveQueryEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(AdaptiveQueryEngine.class);
-
     private final MetricsCollector metricsCollector;
+    private final DataSource dataSource;
     private final double lambda;
     private final QueryExecutor executor;
-    private final OptimizerApplier optimizerApplier;
     private final int minObservations;
-    private final int retrainInterval;
 
-    // Для каждого уникального текста запроса — своя история и модель
     private final Map<String, ObservationHistory> historyMap = new HashMap<>();
     private final Map<String, RegressionModel> modelMap = new HashMap<>();
 
-    public AdaptiveQueryEngine(
-            MetricsCollector metricsCollector,
-            double lambda,
-            QueryExecutor executor,
-            OptimizerApplier optimizerApplier,
-            int minObservations,
-            int retrainInterval
-    ) {
-        this.metricsCollector = metricsCollector;
-        this.lambda = lambda;
-        this.executor = executor;
-        this.optimizerApplier = optimizerApplier;
-        this.minObservations = minObservations;
-        this.retrainInterval = retrainInterval;
-    }
+    // =========================
+    // STATIC (16)
+    // =========================
+    private static final String[] STATIC_KEYS = {
 
-    public double execute(String SQL_text) {
-        // Получить или создать историю и модель для данного запроса
-        ObservationHistory history = historyMap.computeIfAbsent(SQL_text, k -> new ObservationHistory());
-        RegressionModel model = modelMap.computeIfAbsent(SQL_text, k -> new RegressionModel(lambda));
-
-        // 1. Собрать текущие метрики среды
-        Map<String, Double> features = metricsCollector.collectSessionParameters();
-
-        // 2. Если модель уже предлагает оптимальные параметры – применить их
-        double[] optimized = trainIfPossible(history, model);
-        if (optimized != null) {
-            Map<String, String> sessionParams = buildSessionParams(optimized);
-            executor.applySessionSettings(sessionParams);
-        }
-        System.out.println("beta:" + (model.isTrained() ? Arrays.toString(model.getCoefficients()) : "null"));
-        System.out.println("opt_param:" + (optimized != null ? Arrays.toString(optimized) : "null"));
-
-        // 3. Выполнить запрос и замерить реальное время
-        long start = System.nanoTime();
-        ExecutionResult result = executor.execute(SQL_text);
-        double executionTimeMs;
-        if (result.isSuccess()) {
-            long durationNs = System.nanoTime() - start;
-            executionTimeMs = durationNs / 1_000_000.0;
-        } else {
-            executionTimeMs = -1;  // ошибка — можно обработать отдельно
-        }
-
-        // 4. Сохранить наблюдение в историю конкретного запроса
-        history.add(new Observation(features, executionTimeMs));
-
-        return executionTimeMs;
-    }
-
-    private Map<String, String> buildSessionParams(double[] optimized) {
-        Map<String, String> params = new LinkedHashMap<>();
-        // Только те параметры, которые можно менять в сессии
-        for (int i = 0; i < 16; i++) {
-            String key = FEATURE_KEYS[i];
-            if (!ALLOWED_SESSION_KEYS.contains(key)) {
-                continue;
-            }
-            double rawValue = optimized[i];
-            String value = formatParameter(key, rawValue);
-            params.put(key, value);
-        }
-        return params;
-    }
-
-    private static final Set<String> ALLOWED_SESSION_KEYS = Set.of(
             "optimizer_index_cost_adj",
             "optimizer_index_caching",
-            "db_file_multiblock_read_count",
-            "parallel_degree_limit",
-            "parallel_min_time_threshold",
             "optimizer_dynamic_sampling",
-            "hash_area_size",
-            "sort_area_size",
-            "result_cache_max_size"
-    );
+            "db_file_multiblock_read_count",
+            "optimizer_features_enable",
+            "pga_aggregate_target",
+            "workarea_size_policy",
+            "query_rewrite_enabled",
 
-    private String formatParameter(String key, double value) {
-        // Приводим к целому, если параметр целочисленный
-        if (key.equals("db_file_multiblock_read_count") ||
-                key.equals("parallel_degree_limit") ||
-                key.equals("parallel_degree_policy") ||
-                key.equals("parallel_min_time_threshold") ||
-                key.equals("optimizer_dynamic_sampling") ||
-                key.equals("hash_area_size") ||
-                key.equals("sort_area_size") ||
-                key.equals("workarea_size_policy") ||
-                key.equals("plsql_optimize_level") ||
-                key.equals("result_cache_max_size") ||
-                key.equals("sga_target") ||
-                key.equals("db_cache_size") ||
-                key.equals("shared_pool_size") ||
-                key.equals("pga_aggregate_target")
-        ) {
-            return String.valueOf((long) Math.round(value));
-        }
-        // Для дробных параметров (optimizer_index_cost_adj, optimizer_index_caching)
-        return String.valueOf(value);
+            "parallel_degree",
+            "parallel_index_degree",
+            "dynamic_sampling_hint",
+            "cardinality",
+            "opt_estimate_table",
+            "opt_estimate_join",
+            "opt_estimate_index",
+            "pq_distribute"
+    };
+
+    // =========================
+    // DYNAMIC (16)
+    // =========================
+    private static final String[] DYNAMIC_KEYS = {
+
+            "consistent_gets",
+            "buffer_cache_hit_ratio",
+            "parse_calls",
+            "physical_reads",
+            "cpu_usage",
+            "pga_used",
+            "temp_used",
+            "logical_reads",
+
+            "active_sessions",
+            "db_block_gets",
+            "hard_parses",
+            "rows_processed",
+            "table_scans",
+            "join_operations",
+            "index_scans",
+            "io_wait_time"
+    };
+
+    public AdaptiveQueryEngine(
+            MetricsCollector metricsCollector,
+            DataSource dataSource,
+            double lambda,
+            QueryExecutor executor,
+            int minObservations
+    ) {
+        this.metricsCollector = metricsCollector;
+        this.dataSource = dataSource;
+        this.lambda = lambda;
+        this.executor = executor;
+        this.minObservations = minObservations;
     }
 
-    private double[] toVector(Map<String, Double> features) {
-        double[] vector = new double[features.size()];
-        int i = 0;
-        for (Double value : features.values()) {
-            vector[i++] = value;
+    public double execute(String sql) {
+
+        Map<String, Double> all = metricsCollector.collectAll();
+
+        addDefaultHints(all);
+
+        ObservationHistory history =
+                historyMap.computeIfAbsent(sql, k -> new ObservationHistory());
+
+        RegressionModel model =
+                modelMap.computeIfAbsent(sql, k -> new RegressionModel(lambda));
+
+        double[] dynamic = toVector(all, DYNAMIC_KEYS);
+        double[] stat = toVector(all, STATIC_KEYS);
+
+        double[] newStat = trainAndAdjust(history, model, dynamic, stat);
+
+        try (Connection conn = dataSource.getConnection()) {
+
+            if (newStat != null) {
+
+                double[] delta = computeDelta(stat, newStat);
+
+                logVectors(stat, newStat, delta);
+
+                Map<String, String> sessionParams = extractSessionParams(stat, newStat);
+                Map<String, Double> hintParams = extractHintParams(newStat);
+
+                if (!sessionParams.isEmpty()) {
+                    logSessionChanges(sessionParams);
+                    executor.applySessionSettings(conn, sessionParams);
+                }
+
+                logHintChanges(hintParams);
+
+                sql = HintBuilder.applyHints(sql, hintParams);
+            }
+
+            long start = System.nanoTime();
+
+            ExecutionResult result = executor.execute(conn, sql);
+
+            double time = (System.nanoTime() - start) / 1_000_000.0;
+
+            System.out.println("  time = " + time + " ms");
+
+            history.add(new Observation(all, time));
+
+            return time;
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return vector;
     }
 
-    private double[] trainIfPossible(ObservationHistory history, RegressionModel model) {
-        if (history.size() < minObservations) {
-            return null;
-        }
+    // =========================
+    // CORE LOGIC
+    // =========================
+    private double[] trainAndAdjust(
+            ObservationHistory history,
+            RegressionModel model,
+            double[] dynamic,
+            double[] stat
+    ) {
+
+        if (history.size() < minObservations) return null;
 
         int size = history.size();
+
         double[][] X = new double[size][];
         double[] Y = new double[size];
 
         int i = 0;
-        for (Observation obs : history.getAll()) {
-            X[i] = toVector(obs.getFeatures());
-            Y[i] = obs.getExecutionTime();
+        for (Observation o : history.getAll()) {
+            X[i] = toVector(o.getFeatures(), DYNAMIC_KEYS);
+            Y[i] = o.getExecutionTime();
             i++;
         }
 
         model.train(X, Y);
 
-        // Маска adjustable (только управляемые числовые параметры)
-        int featureCount = model.getMean().length;
-        boolean[] adjustable = new boolean[featureCount];
-        int[] adjustableIndices = {
-                0,  // optimizer_index_cost_adj
-                1,  // optimizer_index_caching
-                2,  // db_file_multiblock_read_count
-                3,  // parallel_degree_limit
-                5,  // parallel_min_time_threshold
-                6,  // optimizer_dynamic_sampling
-                7,  // pga_aggregate_target
-                8,  // sga_target
-                9,  // db_cache_size
-                10, // shared_pool_size
-                11, // result_cache_max_size
-                12, // hash_area_size
-                13  // sort_area_size
-        };
-        for (int idx : adjustableIndices) {
-            if (idx < featureCount) {
-                adjustable[idx] = true;
+        double[] beta = model.getCoefficients();
+
+        double[] result = Arrays.copyOf(stat, stat.length);
+
+        double max = Arrays.stream(beta).map(Math::abs).max().orElse(1);
+
+        double baseStep = 0.2;
+
+        for (int j = 0; j < stat.length; j++) {
+
+            double influence = beta[Math.min(j, beta.length - 1)] / max;
+
+            double step = baseStep * (0.5 + Math.abs(influence));
+
+            result[j] = stat[j] - Math.signum(influence) * step * (Math.abs(stat[j]) + 1);
+        }
+
+        return result;
+    }
+
+    // =========================
+    // LOGGING (ТВОЙ ФОРМАТ)
+    // =========================
+    private void logVectors(double[] current, double[] adjusted, double[] delta) {
+
+        System.out.println("\n=== PARAMETER UPDATE ===");
+
+        for (int i = 0; i < STATIC_KEYS.length; i++) {
+
+            System.out.printf(
+                    "%-30s | old=%10.3f | new=%10.3f | Δ=%10.3f%n",
+                    STATIC_KEYS[i],
+                    current[i],
+                    adjusted[i],
+                    delta[i]
+            );
+        }
+
+        System.out.println("========================\n");
+    }
+
+    private void logSessionChanges(Map<String, String> params) {
+
+        System.out.println("=== SESSION PARAM CHANGES ===");
+
+        for (var e : params.entrySet()) {
+            System.out.println(e.getKey() + " -> " + e.getValue());
+        }
+
+        System.out.println("=============================");
+    }
+
+    private void logHintChanges(Map<String, Double> params) {
+
+        System.out.println("=== HINT PARAMS ===");
+
+        for (var e : params.entrySet()) {
+            System.out.println(e.getKey() + " -> " + String.format("%.3f", e.getValue()));
+        }
+
+        System.out.println("===================");
+    }
+
+    // =========================
+    // UTILS
+    // =========================
+    private double[] toVector(Map<String, Double> f, String[] keys) {
+
+        double[] v = new double[keys.length];
+
+        for (int i = 0; i < keys.length; i++) {
+            v[i] = f.getOrDefault(keys[i], 0.0);
+        }
+
+        return v;
+    }
+
+    private double[] computeDelta(double[] a, double[] b) {
+
+        double[] d = new double[a.length];
+
+        for (int i = 0; i < a.length; i++) {
+            d[i] = b[i] - a[i];
+        }
+
+        return d;
+    }
+
+    private Map<String, String> extractSessionParams(double[] current, double[] adjusted) {
+
+        Map<String, String> res = new HashMap<>();
+
+        for (int i = 0; i < 8; i++) {
+            if (Math.abs(current[i] - adjusted[i]) > 1) {
+                res.put(STATIC_KEYS[i], String.valueOf((long) adjusted[i]));
             }
         }
 
-        double[] currentFeatures = mapToArray(history.getLast().getFeatures());
-        double[] newFeatures = model.optimizeParameters(currentFeatures, adjustable);
-
-        log.info("Model trained on {} observations", size);
-        return newFeatures;
+        return res;
     }
 
-    private static double[] mapToArray(Map<String, Double> features) {
-        double[] array = new double[FEATURE_KEYS.length];
-        for (int i = 0; i < FEATURE_KEYS.length; i++) {
-            Double value = features.get(FEATURE_KEYS[i]);
-            array[i] = (value != null) ? value : 0.0;
+    private Map<String, Double> extractHintParams(double[] adjusted) {
+
+        Map<String, Double> res = new HashMap<>();
+
+        for (int i = 8; i < STATIC_KEYS.length; i++) {
+            res.put(STATIC_KEYS[i], adjusted[i]);
         }
-        return array;
+
+        return res;
     }
 
-    public static final String[] FEATURE_KEYS = {
-            "optimizer_index_cost_adj",
-            "optimizer_index_caching",
-            "db_file_multiblock_read_count",
-            "parallel_degree_limit",
-            "parallel_degree_policy",
-            "parallel_min_time_threshold",
-            "optimizer_dynamic_sampling",
-            "pga_aggregate_target",
-            "sga_target",
-            "db_cache_size",
-            "shared_pool_size",
-            "result_cache_max_size",
-            "hash_area_size",
-            "sort_area_size",
-            "workarea_size_policy",
-            "plsql_optimize_level",
-            "cpu_usage",
-            "active_sessions",
-            "logical_reads",
-            "physical_reads",
-            "physical_writes",
-            "db_block_gets",
-            "consistent_gets",
-            "buffer_cache_hit_ratio",
-            "library_cache_hit_ratio",
-            "latch_waits",
-            "enqueue_waits",
-            "pga_used",
-            "temp_used",
-            "io_wait_time",
-            "logons",
-            "parse_calls"
-    };
+    private void addDefaultHints(Map<String, Double> f) {
+
+        f.putIfAbsent("parallel_degree", 1.0);
+        f.putIfAbsent("parallel_index_degree", 1.0);
+        f.putIfAbsent("dynamic_sampling_hint", 2.0);
+        f.putIfAbsent("cardinality", 1000.0);
+        f.putIfAbsent("opt_estimate_table", 1.0);
+        f.putIfAbsent("opt_estimate_join", 1.0);
+        f.putIfAbsent("opt_estimate_index", 1.0);
+        f.putIfAbsent("pq_distribute", 1.0);
+    }
 }
