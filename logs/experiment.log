@@ -1535,3 +1535,239 @@ Caused by: java.io.InterruptedIOException: Socket read interrupted
 	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
 	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
 	... 11 common frames omitted
+19:07:14.419 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:07:15.582 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:07:15.585 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:07:59.042 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:08:06.746 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:08:07.628 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:08:07.630 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:08:52.347 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:08:59.510 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:09:00.334 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:09:00.336 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:11:48.229 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:11:49.035 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:11:49.037 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:12:41.507 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:12:42.420 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:12:42.421 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:13:17.549 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:13:18.366 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:13:18.369 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:14:13.907 [Thread-2] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@aaf634 marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted
+19:14:22.849 [Thread-3] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@442ddfdd marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted
+19:15:16.586 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:15:17.462 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:15:17.463 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:16:13.387 [Thread-2] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@4de5e95c marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted
+19:16:35.959 [Thread-3] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@3ca8f4c3 marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted
+19:17:55.814 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:17:56.687 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:17:56.692 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:42:09.421 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:42:10.252 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:42:10.254 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:42:48.733 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:42:49.542 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:42:49.544 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:43:17.555 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:43:18.433 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:43:18.435 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+19:43:28.052 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Starting...
+19:43:28.845 [main] INFO  com.zaxxer.hikari.pool.HikariPool - OracleTPCHEnginePool - Added connection oracle.jdbc.driver.T4CConnection@2462cb01
+19:43:28.847 [main] INFO  com.zaxxer.hikari.HikariDataSource - OracleTPCHEnginePool - Start completed.
+20:17:49.151 [Thread-2] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@77f82749 marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted
+20:41:00.130 [Thread-3] WARN  com.zaxxer.hikari.pool.ProxyConnection - OracleTPCHEnginePool - Connection oracle.jdbc.driver.T4CConnection@4ea8c12b marked as broken because of SQLSTATE(08006), ErrorCode(18730)
+java.sql.SQLRecoverableException: ORA-18730: Ошибка прерванной операции ввода-вывода.: Socket read interrupted
+https://docs.oracle.com/error-help/db/ora-18730/
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1212)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1390)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1269)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1794)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1592)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3754)
+	at oracle.jdbc.driver.OraclePreparedStatement.execute(OraclePreparedStatement.java:4202)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.execute(OraclePreparedStatementWrapper.java:1015)
+	at com.zaxxer.hikari.pool.ProxyPreparedStatement.execute(ProxyPreparedStatement.java:44)
+	at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.execute(HikariProxyPreparedStatement.java)
+	at org.example.adaptive.experiment.LoadGenerator.lambda$start$0(LoadGenerator.java:39)
+	at java.base/java.lang.Thread.run(Thread.java:1575)
+Caused by: java.io.InterruptedIOException: Socket read interrupted
+	at oracle.net.nt.TimeoutSocketChannel.doSelect(TimeoutSocketChannel.java:706)
+	at oracle.net.nt.TimeoutSocketChannel.doSelectForRead(TimeoutSocketChannel.java:599)
+	at oracle.net.nt.TimeoutSocketChannel.read(TimeoutSocketChannel.java:501)
+	at oracle.net.ns.NSProtocolNIO.doSocketRead(NSProtocolNIO.java:1228)
+	at oracle.net.ns.NIOPacket.readHeader(NIOPacket.java:271)
+	at oracle.net.ns.NIOPacket.readPacketFromSocketChannel(NIOPacket.java:204)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:147)
+	at oracle.net.ns.NIOPacket.readFromSocketChannel(NIOPacket.java:120)
+	at oracle.net.ns.NIONSDataChannel.readDataFromSocketChannel(NIONSDataChannel.java:105)
+	at oracle.jdbc.driver.T4CMAREngineNIO.prepareForUnmarshall(T4CMAREngineNIO.java:893)
+	at oracle.jdbc.driver.T4CMAREngineNIO.unmarshalUB1(T4CMAREngineNIO.java:464)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:949)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:456)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:498)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:272)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1198)
+	... 11 common frames omitted

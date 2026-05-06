@@ -27,7 +27,7 @@ public class Main {
         );
 
         List<String> queries = QueryLoader.loadAllQueries("queries", 10);
-        int repeats = 20;
+        int repeats = 50;
 
         BaselineExecutor baselineExecutor = new BaselineExecutor(dataSource);
 
